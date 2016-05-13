@@ -1,5 +1,5 @@
 '''
-Python functions to get stress--strain data 
+Python functions to get stress--strain data
 from ABAQUS output database (odb).
 
 Author (unless otherwise stated)
@@ -111,13 +111,13 @@ def getMises(what,tensArray):
 	eq = Mises(what,np.reshape(tCompAve,(3,3)))
 	return eq
 
-def odb2ss(fileName,phSets,instanceName=None,mySetName=None):
-	''' Read stress, strain tensors from the odb for 
-		all available time frames, average the components over 
+def odb2ss(fileName,instanceName=None,mySetName=None):
+	''' Read stress, strain tensors from the odb for
+		all available time frames, average the components over
 		all elements and get equivalent stress and strain.'''
-	
+
 	tic = timeit.default_timer()
-	
+
 	# Open file for status messages
 	f = open('out_aba-ss.txt','w')
 
@@ -147,18 +147,18 @@ def odb2ss(fileName,phSets,instanceName=None,mySetName=None):
 	msg = 'Working with step %s and instance %s\n' % (myStepName, instanceName)
 	f.write(msg)
 
-	# Check if the instance exists 
+	# Check if the instance exists
 	instanceNames = myOdb.rootAssembly.instances.keys()
 	if instanceName not in instanceNames:
 		instanceList = '\n'.join(iInstance for iInstance in instanceNames)
 		msg = '\nERROR!\nInstance %s was not found! Available instances in the odb:\n%s'  % (instanceName, instanceList)
 		f.write(msg)
 		mequit(f)
-	else: 
+	else:
 		# Get Instance object
 		myInstance = myOdb.rootAssembly.instances[instanceName]
-	
-	# Check if the set exists 
+
+	# Check if the set exists
 	setNames = myOdb.rootAssembly.instances[instanceName].elementSets.keys()
 	if mySetName not in setNames:
 		setList = str(setNames)
@@ -168,7 +168,7 @@ def odb2ss(fileName,phSets,instanceName=None,mySetName=None):
 	else:
 		# Get Set object
 		mySet = myInstance.elementSets[mySetName]
-	
+
 	# Get total number of elements, nodes, time frames
 	numElements = len(myInstance.elements)
 	numNodes = len(myInstance.nodes)
@@ -176,21 +176,12 @@ def odb2ss(fileName,phSets,instanceName=None,mySetName=None):
 
 	f.write('Number of frames: %s\n' % str(numFrames))
 
-	# Get feature IDs
-	if phSets:
-		ph = np.zeros((numElements))
-		for i,iSet in enumerate(phSets):
-			for iel in myInstance.elementSets[iSet].elements:
-				ph[iel.label-1] = i+1
-	else:
-		ph = None
-
 	# Allocate arrays for equivalent values
 	eqStress = np.zeros(numFrames)
 	eqStrain = np.zeros(numFrames)
 	# eqRate   = np.zeros(numFrames)
-	
-	
+
+
 	# Start loop over time frames
 	for iframe in range(0,numFrames):
 
@@ -214,18 +205,18 @@ def odb2ss(fileName,phSets,instanceName=None,mySetName=None):
 		# # Get equivalent strain rate
 		# eqRate[iframe] = getMises('strain',rate)
 
-		# Get strain 
+		# Get strain
 		varName = 'LE'
 		tensor = getSymTensorData(varName, myFrame, myInstance, mySet, numElements)
 		strain = getFullTensorData(tensor)
 
-		# Get equivalent strain 
+		# Get equivalent strain
 		eqStrain[iframe] = getMises('strain',strain)
-	
+
 	toc = timeit.default_timer()
-	
+
 	msg = 'Done with %s, spent %.2f min' % (fileName, (toc-tic)/60.0)
 	f.write(msg)
-	
+
 	f.close()
-	return eqStress, eqStrain, ph
+	return eqStress, eqStrain
